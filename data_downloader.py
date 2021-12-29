@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+from tqdm import tqdm
 from config import STATIONS_HTML_, SENSORS_HTML_, DATA_SENSOR_HTML_
 
 STATIONS_HTML = STATIONS_HTML_ + '/findAll'
@@ -28,8 +29,9 @@ def _get_data_for_sensors(sensors_ids, station_id):
 
 
 def generate_aggregated_table(limit=None):
+    print('Downloading rows for all stations, sensors')
     aggregated_list = []
-    for station_id in stations_ids[0:limit]:
+    for station_id in tqdm(stations_ids[0:limit]):
         sensors_ids = _get_sensor_list(station_id)
         aggregated_list.extend(_get_data_for_sensors(sensors_ids, station_id))
 
