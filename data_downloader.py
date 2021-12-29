@@ -1,10 +1,6 @@
-import json
 import requests
 import pandas as pd
-from datetime import datetime
 from config import STATIONS_HTML_, SENSORS_HTML_, DATA_SENSOR_HTML_
-from pandas.io.json import json_normalize
-import time
 
 STATIONS_HTML = STATIONS_HTML_ + '/findAll'
 stations_json = requests.get(STATIONS_HTML).json()
