@@ -1,38 +1,35 @@
-import sqlite3
+from config import SQLITE_TABLE_NAME
 from sqlalchemy import create_engine
 from data_downloader import generate_aggregated_table
 import pandas as pd
 
-DATA_LIMIT = None
-SQLITE_TABLE_NAME = "stations_sensors_data"
+def import_data_to_db(data_limit=None, sqlite_table_name = SQLITE_TABLE_NAME):
+    downloaded_data = generate_aggregated_table(data_limit)
+    engine = create_engine('sqlite:///airquality.db', echo=True)
+    sqlite_connection = engine.connect()
 
-downloaded_data = generate_aggregated_table(DATA_LIMIT)
+    sqlite_connection.execute(f'''CREATE TABLE IF NOT EXISTS "{sqlite_table_name}" (
+    	"date"	TEXT,
+    	"value"	NUMERIC,
+    	"key"	TEXT,
+    	"station_id"	INTEGER,
+    	"sensor_id"	INTEGER,
+    	"data_key"	TEXT,
+    	PRIMARY KEY("data_key")
+    );''')
 
-engine = create_engine('sqlite:///airquality.db', echo=True)
-sqlite_connection = engine.connect()
+    data_indexes = sqlite_connection.execute('SELECT data_key FROM stations_sensors_data')
 
-sqlite_connection.execute('''CREATE TABLE IF NOT EXISTS "stations_sensors_data" (
-	"date"	TEXT,
-	"value"	NUMERIC,
-	"key"	TEXT,
-	"station_id"	INTEGER,
-	"sensor_id"	INTEGER,
-	"data_key"	TEXT,
-	PRIMARY KEY("data_key")
-);''')
+    exs_data_keys = pd.DataFrame(data_indexes.fetchall(), columns=['data_key'])
+    outer_join = pd.merge(downloaded_data, exs_data_keys, on=["data_key"], how="outer", indicator=True)
+    rows_to_append = outer_join[~(outer_join._merge == 'both')].drop('_merge', axis=1)
+    print(rows_to_append)
+    l_rows_to_append = len(rows_to_append)
 
-data_indexes = sqlite_connection.execute('SELECT data_key FROM stations_sensors_data')
+    print(f'Rows to append: {l_rows_to_append}')
 
-exs_data_keys = pd.DataFrame(data_indexes.fetchall(), columns=['data_key'])
-outer_join = pd.merge(downloaded_data, exs_data_keys, on=["data_key"], how="outer", indicator=True)
-rows_to_append = outer_join[~(outer_join._merge == 'both')].drop('_merge', axis=1)
-print(rows_to_append)
-l_rows_to_append = len(rows_to_append)
+    if l_rows_to_append > 0:
+        downloaded_data.to_sql(sqlite_table_name, sqlite_connection, if_exists='replace', index=True)
 
-print(f'Rows to append: {l_rows_to_append}')
-
-if l_rows_to_append > 0:
-    downloaded_data.to_sql(SQLITE_TABLE_NAME, sqlite_connection, if_exists='replace', index=True)
-
-sqlite_connection.close()
-engine.dispose()
+    sqlite_connection.close()
+    engine.dispose()
