@@ -42,5 +42,5 @@ def generate_aggregated_table(limit=None):
     aggregated_table['data_key'] = aggregated_table['date'] + '_' + aggregated_table['station_id'].astype(str) + '_' + \
                                    aggregated_table['sensor_id'].astype(str) + '_' + aggregated_table['key']
     aggregated_table = aggregated_table.set_index('data_key')
-    aggregated_table = aggregated_table.dropna(axis=1)
+    aggregated_table = aggregated_table.dropna(axis=0)
     return aggregated_table
