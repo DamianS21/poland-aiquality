@@ -11,7 +11,6 @@ def import_data_to_db(data_limit=None, table_id=BQ_TABLE_ID):
     #    table_id = BQ_TABLE_ID
     downloaded_data = generate_aggregated_table(limit=data_limit)
     bqclient = bigquery.Client()
-
     job_config = bigquery.LoadJobConfig(write_disposition="WRITE_APPEND")
 
     query_string = f'SELECT data_key FROM {BQ_TABLE_ID}'
