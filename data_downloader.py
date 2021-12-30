@@ -1,8 +1,8 @@
+import time
 import requests
 import pandas as pd
-from tqdm import tqdm
 from config import STATIONS_HTML_, SENSORS_HTML_, DATA_SENSOR_HTML_
-
+start = time.time()
 STATIONS_HTML = STATIONS_HTML_ + '/findAll'
 stations_json = requests.get(STATIONS_HTML).json()
 stations_table = pd.json_normalize(stations_json, meta=['city'])
@@ -31,14 +31,20 @@ def _get_data_for_sensors(sensors_ids, station_id):
 def generate_aggregated_table(limit=None):
     print('Downloading rows for all stations, sensors')
     aggregated_list = []
-    for station_id in tqdm(stations_ids[0:limit]):
+    for station_id in stations_ids[0:limit]:
         sensors_ids = _get_sensor_list(station_id)
         aggregated_list.extend(_get_data_for_sensors(sensors_ids, station_id))
 
     aggregated_table = pd.json_normalize(aggregated_list, record_path=['values'],
                                          meta=['key', 'station_id', 'sensor_id'])
-    aggregated_table['data_key'] = aggregated_table['date'] + '_' + aggregated_table['station_id'].astype(str) + '_' + \
+    aggregated_table['date'] = pd.to_datetime(aggregated_table['date'], format="%Y%m%d %H:%M:%S")
+    aggregated_table['data_key'] = aggregated_table['date'].astype(str) + '_' + aggregated_table['station_id'].astype(str) + '_' + \
                                    aggregated_table['sensor_id'].astype(str) + '_' + aggregated_table['key']
     aggregated_table = aggregated_table.set_index('data_key')
     aggregated_table = aggregated_table.dropna(axis=0)
     return aggregated_table
+
+
+generate_aggregated_table(10)
+end = time.time()
+print(end - start)
