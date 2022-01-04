@@ -11,6 +11,7 @@ stations_ids = stations_table['id'].unique()
 
 def _get_sensor_list(station_id):
     SENSORS_HTML = SENSORS_HTML_ + f'{station_id}'
+    print(f'used HTML for sensors: {SENSORS_HTML}')
     sensors_json = requests.get(SENSORS_HTML).json()
     sensors_table = pd.json_normalize(sensors_json, meta=['param'])
     sensors_ids = sensors_table['id']
@@ -21,6 +22,7 @@ def _get_data_for_sensors(sensors_ids, station_id):
     sensors_data_list = []
     for sensor_id in sensors_ids:
         DATA_SENSOR_HTML = DATA_SENSOR_HTML_ + f'{sensor_id}'
+        print(f'used HTML for data sensors: {DATA_SENSOR_HTML}')
         sensor_data_json = requests.get(DATA_SENSOR_HTML).json()
         sensor_data_json['sensor_id'] = int(sensor_id)
         sensor_data_json['station_id'] = int(station_id)
@@ -28,10 +30,10 @@ def _get_data_for_sensors(sensors_ids, station_id):
     return sensors_data_list
 
 
-def generate_aggregated_table(limit=None):
+def generate_aggregated_table(lower_data_limit=0, upper_data_limit=None):
     print('Downloading rows for all stations, sensors')
     aggregated_list = []
-    for station_id in stations_ids[0:limit]:
+    for station_id in stations_ids[lower_data_limit:upper_data_limit]:
         sensors_ids = _get_sensor_list(station_id)
         aggregated_list.extend(_get_data_for_sensors(sensors_ids, station_id))
 
@@ -43,8 +45,3 @@ def generate_aggregated_table(limit=None):
     aggregated_table = aggregated_table.set_index('data_key')
     aggregated_table = aggregated_table.dropna(axis=0)
     return aggregated_table
-
-
-generate_aggregated_table(10)
-end = time.time()
-print(end - start)
